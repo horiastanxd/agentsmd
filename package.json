@@ -1,10 +1,10 @@
 {
-  "name": "agents-md-gen",
+  "name": "agentsmd",
   "version": "0.1.0",
   "description": "Generate an AGENTS.md for your project by scanning config files and extracting commands",
   "type": "module",
   "bin": {
-    "agents-md-gen": "./bin/agents-md-gen.js"
+    "agentsmd": "./bin/agents-md-gen.js"
   },
   "files": [
     "bin",
@@ -28,9 +28,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/horiastanxd/agents-md-gen.git"
+    "url": "git+https://github.com/horiastanxd/agentsmd.git"
   },
-  "homepage": "https://github.com/horiastanxd/agents-md-gen#readme",
+  "homepage": "https://github.com/horiastanxd/agentsmd#readme",
   "engines": {
     "node": ">=18"
   }

@@ -1,4 +1,4 @@
-# agents-md-gen
+# agentsmd
 
 CLI that generates an `AGENTS.md` for your project. It reads your existing config files — `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, and others — and produces a ready-to-fill template with detected commands, linters, and project structure.
 
@@ -7,20 +7,20 @@ CLI that generates an `AGENTS.md` for your project. It reads your existing confi
 ## Usage
 
 ```bash
-npx agents-md-gen
+npx agentsmd
 ```
 
 Or install globally:
 
 ```bash
-npm install -g agents-md-gen
-agents-md-gen
+npm install -g agentsmd
+agentsmd
 ```
 
 By default it writes `AGENTS.md` in the current directory. Pass a path to run it elsewhere:
 
 ```bash
-agents-md-gen ./my-project
+agentsmd ./my-project
 ```
 
 ### Options
@@ -49,7 +49,7 @@ For multi-language monorepos, sections for each detected ecosystem are included.
 
 ## Output example
 
-Running `agents-md-gen --stdout` on a typical Next.js project:
+Running `agentsmd --stdout` on a typical Next.js project:
 
 ```
 # AGENTS.md
