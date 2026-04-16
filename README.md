@@ -2,7 +2,7 @@
 
 CLI that generates an `AGENTS.md` for your project. It reads your existing config files — `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, and others — and produces a ready-to-fill template with detected commands, linters, and project structure.
 
-`AGENTS.md` is the file AI coding agents (Claude Code, Codex, Cursor, Gemini CLI, and others) look for to understand how to work in a repo.
+`AGENTS.md` is the file AI coding agents (Claude Code, Codex, Cursor, Gemini CLI, and others) read to understand how to work in a repo.
 
 ## Usage
 
@@ -49,16 +49,16 @@ For multi-language monorepos, sections for each detected ecosystem are included.
 
 ## Output example
 
-```markdown
+Running `agents-md-gen --stdout` on a typical Next.js project:
+
+```
 # AGENTS.md
 
 Instructions for AI coding agents working in this repository.
 
 ## Setup
 
-```
-npm install
-```
+    npm install
 
 ## Commands
 
@@ -71,9 +71,9 @@ npm install
 
 Linters / formatters in use: ESLint, Prettier, TypeScript
 
-This package uses ES modules (`"type": "module"` in package.json).
-
 ## Architecture
+
+Framework: Next.js
 
 _Fill in component boundaries, data flow, and any non-obvious constraints here._
 

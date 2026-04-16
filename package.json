@@ -7,10 +7,12 @@
     "agents-md-gen": "./bin/agents-md-gen.js"
   },
   "files": [
-    "bin"
+    "bin",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
-    "test": "node --test test/"
+    "test": "node bin/agents-md-gen.js --version && node bin/agents-md-gen.js --stdout . > /dev/null"
   },
   "keywords": [
     "agents",
@@ -19,12 +21,16 @@
     "codex",
     "cursor",
     "ai",
-    "codegen",
     "cli",
     "developer-tools"
   ],
   "author": "horiastanxd",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/horiastanxd/agents-md-gen.git"
+  },
+  "homepage": "https://github.com/horiastanxd/agents-md-gen#readme",
   "engines": {
     "node": ">=18"
   }

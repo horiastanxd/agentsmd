@@ -37,19 +37,8 @@ function tomlGet(src, key) {
   return m ? m[1] : null;
 }
 
-function tomlGetArray(src, section) {
-  const start = src.indexOf(`[${section}]`);
-  if (start === -1) return null;
-  const chunk = src.slice(start);
-  const end = chunk.search(/^\[(?!\[)/m);
-  return end === -1 ? chunk : chunk.slice(0, end);
-}
-
-// ---------- detectors ----------
-
 function detectNode(dir) {
-  const pkgPath = join(dir, 'package.json');
-  const pkg = readJSON(pkgPath);
+  const pkg = readJSON(join(dir, 'package.json'));
   if (!pkg) return null;
 
   const scripts = pkg.scripts || {};
@@ -76,12 +65,12 @@ function detectNode(dir) {
     commands.typecheck = `${runPrefix} ${scripts['type-check'] ? 'type-check' : 'typecheck'}`;
   }
 
-  const linters = [];
   const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+  const linters = [];
   if (deps.eslint) linters.push('ESLint');
   if (deps.prettier) linters.push('Prettier');
   if (deps.biome) linters.push('Biome');
-  if (deps.typescript || deps['ts-node'] || deps['tsx']) linters.push('TypeScript');
+  if (deps.typescript || deps['ts-node'] || deps.tsx) linters.push('TypeScript');
 
   const framework = deps.next ? 'Next.js' :
                     deps.nuxt ? 'Nuxt' :
@@ -91,9 +80,15 @@ function detectNode(dir) {
                     deps.fastify ? 'Fastify' :
                     deps.express ? 'Express' : null;
 
-  const isESM = pkg.type === 'module';
-
-  return { lang: 'Node.js', framework, commands, linters, isESM, name: pkg.name, description: pkg.description };
+  return {
+    lang: 'Node.js',
+    framework,
+    commands,
+    linters,
+    isESM: pkg.type === 'module',
+    name: pkg.name,
+    description: pkg.description,
+  };
 }
 
 function detectPython(dir) {
@@ -108,7 +103,6 @@ function detectPython(dir) {
 
   if (existsSync(join(dir, 'uv.lock'))) {
     commands.install = 'uv sync';
-    commands.run = 'uv run';
   } else if (existsSync(join(dir, 'Pipfile'))) {
     commands.install = 'pipenv install';
   } else if (existsSync(join(dir, 'poetry.lock'))) {
@@ -117,51 +111,56 @@ function detectPython(dir) {
     commands.install = 'pip install -r requirements.txt';
   }
 
+  const uvRun = existsSync(join(dir, 'uv.lock')) ? 'uv run ' : '';
+
   if (pyproject) {
     if (pyproject.includes('[tool.ruff]') || pyproject.includes('[tool.ruff.')) linters.push('Ruff');
     if (pyproject.includes('[tool.black]')) linters.push('Black');
     if (pyproject.includes('[tool.isort]')) linters.push('isort');
     if (pyproject.includes('[tool.mypy]') || pyproject.includes('mypy')) linters.push('mypy');
-    if (pyproject.includes('[tool.pytest') || pyproject.includes('pytest')) commands.test = 'pytest';
+    if (pyproject.includes('[tool.pytest') || pyproject.includes('pytest')) commands.test = `${uvRun}pytest`;
   }
 
   if (existsSync(join(dir, '.flake8')) || readText(join(dir, 'setup.cfg'))?.includes('[flake8]')) linters.push('flake8');
-  if (!commands.test && (existsSync(join(dir, 'pytest.ini')) || existsSync(join(dir, 'tests')))) commands.test = 'pytest';
+  if (!commands.test && (existsSync(join(dir, 'pytest.ini')) || existsSync(join(dir, 'tests')))) {
+    commands.test = `${uvRun}pytest`;
+  }
 
   if (linters.includes('Ruff')) {
-    commands.lint = commands.run ? `${commands.run} ruff check .` : 'ruff check .';
-    commands.format = commands.run ? `${commands.run} ruff format .` : 'ruff format .';
+    commands.lint = `${uvRun}ruff check .`;
+    commands.format = `${uvRun}ruff format .`;
   } else if (linters.includes('Black')) {
     commands.format = 'black .';
   }
 
-  const name = pyproject ? (tomlGet(pyproject, 'name') || null) : null;
-  const description = pyproject ? (tomlGet(pyproject, 'description') || null) : null;
-
-  return { lang: 'Python', commands, linters, name, description };
+  return {
+    lang: 'Python',
+    commands,
+    linters,
+    name: pyproject ? (tomlGet(pyproject, 'name') || null) : null,
+    description: pyproject ? (tomlGet(pyproject, 'description') || null) : null,
+  };
 }
 
 function detectRust(dir) {
   const cargoToml = readTOML(join(dir, 'Cargo.toml'));
   if (!cargoToml) return null;
 
-  const name = tomlGet(cargoToml, 'name');
-  const description = tomlGet(cargoToml, 'description');
-
+  const isWorkspace = cargoToml.includes('[workspace]');
   const commands = {
-    build: 'cargo build',
-    test: 'cargo test',
+    build: isWorkspace ? 'cargo build --workspace' : 'cargo build',
+    test: isWorkspace ? 'cargo test --workspace' : 'cargo test',
     lint: 'cargo clippy',
     format: 'cargo fmt',
   };
 
-  const isWorkspace = cargoToml.includes('[workspace]');
-  if (isWorkspace) {
-    commands.build = 'cargo build --workspace';
-    commands.test = 'cargo test --workspace';
-  }
-
-  return { lang: 'Rust', commands, linters: ['Clippy', 'rustfmt'], name, description, isWorkspace };
+  return {
+    lang: 'Rust',
+    commands,
+    linters: ['Clippy', 'rustfmt'],
+    name: tomlGet(cargoToml, 'name'),
+    description: tomlGet(cargoToml, 'description'),
+  };
 }
 
 function detectGo(dir) {
@@ -169,22 +168,23 @@ function detectGo(dir) {
   if (!goMod) return null;
 
   const moduleMatch = goMod.match(/^module\s+(\S+)/m);
-  const moduleName = moduleMatch ? moduleMatch[1] : null;
-
-  const commands = {
-    build: 'go build ./...',
-    test: 'go test ./...',
-    lint: 'golangci-lint run',
-    format: 'gofmt -w .',
-  };
-
   const hasGolangciConfig = existsSync(join(dir, '.golangci.yml')) ||
                             existsSync(join(dir, '.golangci.yaml')) ||
                             existsSync(join(dir, '.golangci.json'));
 
-  if (!hasGolangciConfig) delete commands.lint;
+  const commands = {
+    build: 'go build ./...',
+    test: 'go test ./...',
+    format: 'gofmt -w .',
+  };
+  if (hasGolangciConfig) commands.lint = 'golangci-lint run';
 
-  return { lang: 'Go', commands, linters: ['gofmt', hasGolangciConfig ? 'golangci-lint' : null].filter(Boolean), module: moduleName };
+  return {
+    lang: 'Go',
+    commands,
+    linters: ['gofmt', ...(hasGolangciConfig ? ['golangci-lint'] : [])],
+    module: moduleMatch ? moduleMatch[1] : null,
+  };
 }
 
 function detectRuby(dir) {
@@ -198,11 +198,18 @@ function detectRuby(dir) {
     linters.push('RuboCop');
     commands.lint = 'bundle exec rubocop';
   }
-  if (gemfile.includes('rspec')) commands.test = 'bundle exec rspec';
-  else if (existsSync(join(dir, 'test'))) commands.test = 'bundle exec rake test';
+  if (gemfile.includes('rspec')) {
+    commands.test = 'bundle exec rspec';
+  } else if (existsSync(join(dir, 'test'))) {
+    commands.test = 'bundle exec rake test';
+  }
 
-  const isRails = gemfile.includes("'rails'") || gemfile.includes('"rails"');
-  return { lang: 'Ruby', framework: isRails ? 'Rails' : null, commands, linters };
+  return {
+    lang: 'Ruby',
+    framework: (gemfile.includes("'rails'") || gemfile.includes('"rails"')) ? 'Rails' : null,
+    commands,
+    linters,
+  };
 }
 
 function detectJava(dir) {
@@ -210,12 +217,14 @@ function detectJava(dir) {
   const hasGradle = existsSync(join(dir, 'build.gradle')) || existsSync(join(dir, 'build.gradle.kts'));
   if (!hasMaven && !hasGradle) return null;
 
-  const tool = hasMaven ? 'Maven' : 'Gradle';
-  const commands = hasMaven
-    ? { build: 'mvn compile', test: 'mvn test', package: 'mvn package' }
-    : { build: './gradlew build', test: './gradlew test' };
-
-  return { lang: 'Java/Kotlin', buildTool: tool, commands, linters: [] };
+  return {
+    lang: 'Java/Kotlin',
+    buildTool: hasMaven ? 'Maven' : 'Gradle',
+    commands: hasMaven
+      ? { build: 'mvn compile', test: 'mvn test', package: 'mvn package' }
+      : { build: './gradlew build', test: './gradlew test' },
+    linters: [],
+  };
 }
 
 function detectPhp(dir) {
@@ -224,18 +233,13 @@ function detectPhp(dir) {
 
   const commands = { install: 'composer install' };
   const deps = { ...composer.require, ...composer['require-dev'] };
-
   if (deps['phpunit/phpunit']) commands.test = './vendor/bin/phpunit';
   if (deps['friendsofphp/php-cs-fixer']) commands.format = './vendor/bin/php-cs-fixer fix';
 
   return { lang: 'PHP', commands, linters: [] };
 }
 
-// ---------- detectors list ----------
-
 const detectors = [detectNode, detectPython, detectRust, detectGo, detectRuby, detectJava, detectPhp];
-
-// ---------- generator ----------
 
 function detectAll(dir) {
   return detectors.map(d => d(dir)).filter(Boolean);
@@ -268,8 +272,8 @@ function generateAgentsMd(results, dir) {
   }
 
   const primary = results[0];
+  const nodeResult = results.find(r => r.lang === 'Node.js');
 
-  // Setup
   lines.push('## Setup');
   lines.push('');
   if (primary.commands?.install) {
@@ -279,10 +283,8 @@ function generateAgentsMd(results, dir) {
   }
   lines.push('');
 
-  // Commands
   lines.push('## Commands');
   lines.push('');
-
   for (const result of results) {
     if (results.length > 1) lines.push(`### ${result.lang}`);
     const cmds = { ...result.commands };
@@ -291,40 +293,38 @@ function generateAgentsMd(results, dir) {
     if (block) lines.push(block);
     if (results.length > 1) lines.push('');
   }
-
   lines.push('');
 
-  // Single-file test hint for Node
-  const nodeResult = results.find(r => r.lang === 'Node.js');
   if (nodeResult?.commands?.test) {
-    lines.push('> Run a single test file with `' +
-      nodeResult.commands.test.replace('test', 'test --test-only') +
-      ' path/to/test.js` (Node test runner) or pass the file path directly depending on your test framework.');
+    lines.push('> To run a single test file, pass the path directly to the test runner rather than going through `npm run test`.');
     lines.push('');
   }
 
-  // Code style
   lines.push('## Code style');
   lines.push('');
-
   for (const result of results) {
     if (result.linters?.length) {
-      if (results.length > 1) lines.push(`**${result.lang}**: ${result.linters.join(', ')}`);
-      else lines.push(`Linters / formatters in use: ${result.linters.join(', ')}`);
+      if (results.length > 1) {
+        lines.push(`**${result.lang}**: ${result.linters.join(', ')}`);
+      } else {
+        lines.push(`Linters / formatters in use: ${result.linters.join(', ')}`);
+      }
     }
   }
-
-  // ESM note
   if (nodeResult?.isESM) {
     lines.push('');
     lines.push('This package uses ES modules (`"type": "module"` in package.json). Use `.js` extensions in imports and `import`/`export` syntax throughout.');
   }
-
   lines.push('');
 
-  // Architecture — populate if detectable
   lines.push('## Architecture');
   lines.push('');
+
+  const frameworks = results.map(r => r.framework).filter(Boolean);
+  if (frameworks.length) {
+    lines.push(`Framework: ${frameworks.join(', ')}`);
+    lines.push('');
+  }
 
   const descriptions = results.map(r => r.description).filter(Boolean);
   if (descriptions.length) {
@@ -332,11 +332,11 @@ function generateAgentsMd(results, dir) {
     lines.push('');
   }
 
-  // Attempt to list top-level source dirs
   let srcDirs = [];
   try {
     srcDirs = readdirSync(dir, { withFileTypes: true })
-      .filter(e => e.isDirectory() && !e.name.startsWith('.') && !['node_modules', 'vendor', 'target', 'dist', 'build', '__pycache__', '.git'].includes(e.name))
+      .filter(e => e.isDirectory() && !e.name.startsWith('.') &&
+        !['node_modules', 'vendor', 'target', 'dist', 'build', '__pycache__', '.git'].includes(e.name))
       .map(e => e.name);
   } catch { /* ignore */ }
 
@@ -350,7 +350,6 @@ function generateAgentsMd(results, dir) {
   lines.push('_Fill in component boundaries, data flow, and any non-obvious constraints here._');
   lines.push('');
 
-  // Conventions
   lines.push('## Conventions');
   lines.push('');
   lines.push('_Add project-specific conventions: naming, file organisation, commit format, etc._');
@@ -358,8 +357,6 @@ function generateAgentsMd(results, dir) {
 
   return lines.join('\n');
 }
-
-// ---------- main ----------
 
 function main() {
   const args = process.argv.slice(2);
@@ -389,7 +386,6 @@ function main() {
   }
 
   const dest = resolve(dir, outputFile);
-
   if (existsSync(dest) && !overwrite) {
     console.error(`${outputFile} already exists. Use --overwrite to replace it.`);
     process.exit(1);
