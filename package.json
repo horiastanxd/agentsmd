@@ -4,7 +4,7 @@
   "description": "Generate an AGENTS.md for your project by scanning config files and extracting commands",
   "type": "module",
   "bin": {
-    "agentsmd": "./bin/agents-md-gen.js"
+    "agentsmd": "bin/agents-md-gen.js"
   },
   "files": [
     "bin",
