@@ -7,13 +7,13 @@ CLI that generates an `AGENTS.md` for your project. It reads your existing confi
 ## Usage
 
 ```bash
-npx agentsmd
+npx @horiastanxd/agentsmd
 ```
 
 Or install globally:
 
 ```bash
-npm install -g agentsmd
+npm install -g @horiastanxd/agentsmd
 agentsmd
 ```
 

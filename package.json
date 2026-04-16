@@ -1,5 +1,5 @@
 {
-  "name": "agentsmd",
+  "name": "@horiastanxd/agentsmd",
   "version": "0.1.0",
   "description": "Generate an AGENTS.md for your project by scanning config files and extracting commands",
   "type": "module",
