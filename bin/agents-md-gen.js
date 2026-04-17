@@ -397,7 +397,7 @@ function main() {
   if (results.length) {
     console.log(`Detected: ${results.map(r => r.lang).join(', ')}`);
   } else {
-    console.log('No project files recognised — generated a blank template.');
+    console.log('No project files recognised - generated a blank template.');
   }
 }
 

@@ -1,6 +1,6 @@
 # agentsmd
 
-CLI that generates an `AGENTS.md` for your project. It reads your existing config files — `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, and others — and produces a ready-to-fill template with detected commands, linters, and project structure.
+CLI that generates an `AGENTS.md` for your project. It reads your existing config files - `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, and others - and produces a ready-to-fill template with detected commands, linters, and project structure.
 
 `AGENTS.md` is the file AI coding agents (Claude Code, Codex, Cursor, Gemini CLI, and others) read to understand how to work in a repo.
 
@@ -84,7 +84,7 @@ _Add project-specific conventions: naming, file organisation, commit format, etc
 
 ## Why
 
-Most repos that work with AI agents need some form of `AGENTS.md` (or `CLAUDE.md`, `.cursorrules`, etc.) to give the agent context on how to build, test, and lint the code. Writing one from scratch every time is tedious. This tool does the mechanical part — scanning configs — and leaves the judgment calls (architecture, conventions, gotchas) for you to fill in.
+Most repos that work with AI agents need some form of `AGENTS.md` (or `CLAUDE.md`, `.cursorrules`, etc.) to give the agent context on how to build, test, and lint the code. Writing one from scratch every time is tedious. This tool does the mechanical part - scanning configs - and leaves the judgment calls (architecture, conventions, gotchas) for you to fill in.
 
 ## Requirements
 
