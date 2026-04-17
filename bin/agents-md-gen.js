@@ -32,9 +32,10 @@ function readText(path) {
 }
 
 function tomlGet(src, key) {
-  const re = new RegExp(`^${key}\\s*=\\s*"([^"]*)"`, 'm');
+  // Matches `key = "value"`, `key = 'value'`, with optional leading whitespace.
+  const re = new RegExp(`^\\s*${key}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'm');
   const m = src.match(re);
-  return m ? m[1] : null;
+  return m ? (m[1] ?? m[2]) : null;
 }
 
 function detectNode(dir) {
@@ -370,10 +371,20 @@ function main() {
   let overwrite = false;
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--output' && args[i + 1]) { outputFile = args[++i]; }
-    else if (args[i] === '--stdout') { toStdout = true; }
-    else if (args[i] === '--overwrite') { overwrite = true; }
-    else if (!args[i].startsWith('--')) { targetDir = args[i]; }
+    const a = args[i];
+    if (a === '--output') {
+      if (!args[i + 1] || args[i + 1].startsWith('--')) {
+        console.error('--output requires a filename.');
+        process.exit(1);
+      }
+      outputFile = args[++i];
+    } else if (a.startsWith('--output=')) {
+      outputFile = a.slice('--output='.length);
+      if (!outputFile) { console.error('--output= requires a filename.'); process.exit(1); }
+    } else if (a === '--stdout') { toStdout = true; }
+    else if (a === '--overwrite') { overwrite = true; }
+    else if (!a.startsWith('--')) { targetDir = a; }
+    else { console.error(`Unknown flag: ${a}`); process.exit(1); }
   }
 
   const dir = resolve(targetDir);
@@ -401,4 +412,9 @@ function main() {
   }
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  console.error(err.message || err);
+  process.exit(1);
+}
